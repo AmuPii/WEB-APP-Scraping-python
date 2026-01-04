@@ -1,0 +1,208 @@
+import streamlit as st
+from playwright.async_api import async_playwright # Mudamos para async_api
+from fake_useragent import UserAgent
+import pandas as pd
+import asyncio
+import random
+import sys
+
+# --- CONFIGURAÇÃO INICIAL (CRÍTICO PARA WINDOWS) ---
+if sys.platform == 'win32':
+    # Garante que o Windows use o loop que permite abrir subprocessos (navegador)
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
+st.set_page_config(page_title="Scraper Pro Async", layout="wide")
+st.title("🕷️ Web Scraper App (Async Mode)")
+st.markdown("---")
+
+# --- 1. SCHEDULER ---
+def scheduler(url_input):
+    if not url_input:
+        return []
+    return [url.strip() for url in url_input.replace(',', '\n').split('\n') if url.strip()]
+
+# --- 2. DOWNLOADER (Agora é ASYNC) ---
+# --- 2. DOWNLOADER (ATUALIZADO PARA ESPERAR A TABELA) ---
+async def downloader_async(url):
+    ua = UserAgent()
+    user_agent = ua.random
+    
+    try:
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True) # Mude para False se quiser ver acontecendo
+            
+            context = await browser.new_context(user_agent=user_agent)
+            page = await context.new_page()
+            
+            # Acessa a página
+            await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+            
+            # --- O PULO DO GATO ---
+            # Esperamos aparecer um elemento específico da tabela de odds.
+            # Se não esperar, ele pega o HTML antes da tabela carregar.
+            try:
+                # Tenta esperar por algo que pareça uma célula de aposta ou linha
+                # DICA: Ajuste esse seletor se der Timeout. Tente algo genérico como 'div' ou 'table'
+                await page.wait_for_selector("div", state="attached", timeout=5000)
+                await asyncio.sleep(3) # Espera extra de segurança para os dados popularem
+            except:
+                print("Aviso: Elemento específico não encontrado, tentando baixar mesmo assim.")
+
+            content = await page.content()
+            await browser.close()
+            return content
+
+    except Exception as e:
+        return f"ERROR: {e}"
+
+# --- 3. PARSER (REESCRITO PARA TABELAS) ---
+def parser(html_content):
+    from bs4 import BeautifulSoup
+    
+    if html_content and html_content.startswith("ERROR:"):
+        return None, html_content
+
+    soup = BeautifulSoup(html_content, 'html.parser')
+    extracted_data_list = [] # Agora vamos retornar uma LISTA de linhas, não só um dicionário
+
+    # --- LÓGICA DE EXTRAÇÃO DA TABELA ---
+    # Tenta encontrar todos os containers que parecem ser as linhas das casas de aposta.
+    # Baseado na sua imagem, parece ser uma lista vertical.
+    
+    # ⚠️ AQUI É ONDE VOCÊ PRECISA AJUSTAR OS SELETORES (CSS CLASSES) ⚠️
+    # Estou usando suposições comuns. Se não funcionar, use o Inspecionar Elemento.
+    
+    # Estratégia Genérica: Procurar linhas que tenham números decimais (odds)
+    # Vamos tentar achar todos os elementos que contêm o nome das casas
+    
+    # Tentativa 1: Procurar divs ou trs (linhas da tabela)
+    # Muitas vezes esses sites usam divs com classes tipo "row", "item", "bookmaker"
+    rows = soup.find_all(['div', 'tr']) 
+    
+    current_page_title = soup.title.string if soup.title else "Sem Título"
+
+    for row in rows:
+        row_text = row.get_text(" ", strip=True) # Pega todo texto da linha
+        
+        # Filtro simples: Se a linha tiver nomes conhecidos OU parecer ter odds
+        # Isso ajuda a ignorar cabeçalhos ou rodapés inúteis
+        if "Bet365" in row_text or "Betano" in row_text or "1.3" in row_text:
+            
+            # Tenta extrair pedaços específicos
+            # Precisamos identificar as colunas.
+            
+            item = {}
+            item['titulo_jogo'] = current_page_title
+            item['texto_completo_linha'] = row_text[:200] # Debug: ver o que ele pegou
+            
+            # TENTATIVA DE EXTRAÇÃO DE ODDS (Lógica baseada em posição ou padrão)
+            # Vamos procurar padrões numéricos de odds (ex: 1.36, 5.00) dentro desta linha
+            import re
+            odds_encontradas = re.findall(r'\d+\.\d{2}', row_text)
+            
+            if len(odds_encontradas) >= 3:
+                # Geralmente a ordem é: Odd 1 (Casa), Odd X (Empate), Odd 2 (Fora)
+                item['Odd_1'] = odds_encontradas[0]
+                item['Odd_X'] = odds_encontradas[1]
+                item['Odd_2'] = odds_encontradas[2]
+                
+                # O nome da casa geralmente é a primeira palavra ou texto antes dos números
+                # Aqui é difícil ser preciso sem o seletor exato, mas vamos tentar:
+                item['Casa'] = "Identificar Manualmente" 
+                if "Bet365" in row_text: item['Casa'] = "Bet365"
+                elif "Betano" in row_text: item['Casa'] = "Betano"
+                elif "1xBet" in row_text: item['Casa'] = "1xBet"
+                elif "Sportingbet" in row_text: item['Casa'] = "Sportingbet"
+                else: 
+                     # Tenta pegar o início da string como nome
+                     item['Casa'] = row_text.split(' ')[0]
+
+                extracted_data_list.append(item)
+
+    # Remove duplicatas (comum ao raspar divs aninhadas)
+    unique_data = []
+    seen = set()
+    for d in extracted_data_list:
+        # Cria uma chave única baseada nas odds e casa para não repetir
+        key = f"{d.get('Casa')}-{d.get('Odd_1')}"
+        if key not in seen and len(d.get('Odd_1', '')) > 0:
+            seen.add(key)
+            unique_data.append(d)
+
+    return unique_data, None
+
+# --- 4. PIPELINE (AJUSTE PARA LISTAS) ---
+def pipeline(raw_data_list, url):
+    # Como agora recebemos uma LISTA de dicionários, e não um só dicionário
+    if not raw_data_list:
+        return []
+        
+    cleaned_list = []
+    for data in raw_data_list:
+        d = data.copy()
+        d['url_origem'] = url
+        d['status'] = "✅ Coletado"
+        cleaned_list.append(d)
+        
+    return cleaned_list
+
+# --- FUNÇÃO PRINCIPAL DE ORQUESTRAÇÃO (ASYNC) ---
+async def run_scraper_logic(urls, delay):
+    results = []
+    
+    # Elementos de UI para atualização em tempo real
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    total_urls = len(urls)
+    
+    for i, url in enumerate(urls):
+        status_text.text(f"Processando {i+1}/{total_urls}: {url}")
+        
+        # Chama o downloader assíncrono
+        html_content = await downloader_async(url)
+        
+        if html_content:
+            # Chama o parser (síncrono, pois é só processamento de texto)
+            raw_data, error_msg = parser(html_content)
+            
+            if error_msg:
+                st.error(f"Falha na URL {url}: {error_msg}")
+            elif raw_data: # raw_data agora é uma lista de casas de aposta
+                clean_list = pipeline(raw_data, url)
+                results.extend(clean_list) # Use EXTEND, não append, para juntar listas
+        
+        # Delay entre requisições (exceto na última)
+        if i < total_urls - 1:
+            with st.spinner(f"⏳ Aguardando {delay}s..."):
+                await asyncio.sleep(delay) # Importante: asyncio.sleep, não time.sleep
+        
+        progress_bar.progress((i + 1) / total_urls)
+        
+    status_text.text("Concluído!")
+    return results
+
+# --- INTERFACE ---
+st.sidebar.header("Configurações")
+delay_seconds = st.sidebar.number_input("Delay (segundos)", min_value=1, value=5) # Reduzi para 5s para testes
+
+st.subheader("Insira as URLs")
+urls_input = st.text_area("URLs:", height=150, value="https://example.com")
+
+if st.button("🚀 Iniciar Scraping"):
+    urls_to_visit = scheduler(urls_input)
+    
+    if not urls_to_visit:
+        st.warning("Insira URLs válidas.")
+    else:
+        # PONTO MÁGICO: Executa o loop assíncrono dentro do Streamlit
+        final_data = asyncio.run(run_scraper_logic(urls_to_visit, delay_seconds))
+        
+        if final_data:
+            df = pd.DataFrame(final_data)
+            st.success("Dados extraídos com sucesso!")
+            st.dataframe(df)
+            
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Baixar CSV", csv, "dados.csv", "text/csv")
+        else:
+            st.warning("Nenhum dado retornado.")

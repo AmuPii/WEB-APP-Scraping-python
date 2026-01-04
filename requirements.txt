@@ -1,0 +1,20 @@
+O fluxo ideal deve conter:
+
+Scheduler: Define quais URLs visitar.
+
+Downloader: Baixa o conteúdo (HTML/JSON).
+
+Parser: Extrai os dados específicos do HTML.
+
+Pipeline: Limpa os dados (remove espaços, formata datas) e valida.
+
+Storage: Salva em banco de dados ou arquivo.
+
+
+Core: Python.
+
+Extração: BeautifulSoup (para simples) ou Playwright (para complexos).
+
+Interface: Streamlit (para criar a web UI instantaneamente).
+
+Dados: Pandas para manipular e exportar para Excel/CSV.
