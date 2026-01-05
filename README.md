@@ -1,5 +1,3 @@
-# WEB-APP-Scraping-python
-
 🕷️ Universal Web Scraper Pro
 Um aplicativo de Web Scraping de última geração, construído em Python e Streamlit. Diferente de scrapers tradicionais que quebram se o site mudar o layout, este app utiliza heurísticas para detectar dados estruturados automaticamente, sendo capaz de extrair informações de tabelas clássicas (<table>) e grades modernas baseadas em Divs (comuns em sites de apostas, e-commerce e dashboards).
 
