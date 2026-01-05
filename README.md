@@ -1,113 +1,93 @@
 # 🕷️ Universal Web Scraper Pro
+### Versão Portátil para Windows
 
-Um aplicativo de Web Scraping de última geração, construído em Python e Streamlit. Diferente de scrapers tradicionais que quebram se o site mudar o layout, este app utiliza heurísticas para detectar dados estruturados automaticamente, sendo capaz de extrair informações de tabelas clássicas (`<table>`) e grades modernas baseadas em Divs (comuns em sites de apostas, e-commerce e dashboards).
+Um aplicativo de Web Scraping inteligente e universal. Diferente de robôs tradicionais, este app utiliza inteligência heurística para detectar dados em qualquer site — desde tabelas clássicas na Wikipedia até grids modernos e complexos em sites de apostas e e-commerce — sem precisar de configurações manuais.
 
-## 🚀 Funcionalidades
+**Esta versão foi otimizada para rodar facilmente em qualquer computador Windows com o mínimo de configuração prévia.**
 
-- **Extração Universal**: Funciona em Wikipedia, Amazon, Bet365, Betano, Sites de Finanças, etc.
-- **Detector de "Div Tables"**: Algoritmo inteligente que identifica estruturas repetitivas (grids/listas) que simulam tabelas.
-- **Navegação Real (Headless)**: Usa Playwright para simular um navegador real, processando JavaScript e Lazy Loading.
-- **Anti-Bloqueio Básico**: Rotatividade de User-Agents e delays aleatórios para evitar detecção imediata.
-- **Arquitetura Assíncrona**: A interface não congela enquanto o robô trabalha.
-- **Exportação Fácil**: Visualização em abas e download de qualquer tabela encontrada em CSV.
+## 🚀 O que ele faz?
 
-## 🛠️ Pré-requisitos
+1. **Extração Universal**: Jogue qualquer link (Bet365, Amazon, Wikipedia, Finance sites) e ele varre os dados.
+2. **Detector de "Div Tables"**: Reconhece listas e grids que parecem tabelas mas são feitos de `<div>` (muito comum em sites modernos que bloqueiam scrapers antigos).
+3. **Instalação Automática**: O sistema configura seu próprio ambiente, baixa as bibliotecas e o navegador necessário automaticamente na primeira execução.
+4. **Exportação**: Permite baixar os dados encontrados (Tabelas, Grids ou Links) diretamente em CSV.
 
-- **Python**: Versão 3.9 até 3.12 (Recomendado).
-  > **Nota**: O Python 3.13 ainda pode apresentar instabilidades com algumas bibliotecas assíncronas no Windows.
-- **Navegador**: Chromium (instalado automaticamente via Playwright).
+## 📋 Pré-requisitos
 
-## 📦 Instalação
+Para usar este aplicativo, você só precisa de uma coisa instalada no computador:
 
-1. Clone ou baixe este repositório:
-   ```bash
-   git clone https://github.com/seu-usuario/universal-web-scraper-pro.git
-   cd universal-web-scraper-pro
+- **Python** (Versão 3.10 ou superior)
+  > **Nota**: Ao instalar o Python, lembre-se de marcar a caixinha: ☑️ **"Add Python to PATH"**.
+
+## ▶️ Como Instalar e Rodar (Modo Fácil)
+
+**Não é necessário abrir terminal ou digitar comandos de programação.**
+
+1. **Baixe e Extraia**: Certifique-se de que todos os arquivos (`app.py`, `requirements.txt`, `iniciar.bat`) estejam juntos na mesma pasta.
+
+2. **Execute o Iniciador**: Dê um clique duplo no arquivo:
+   ```
+   iniciar.bat
    ```
 
-2. Instale as dependências do Python:
-   ```bash
-   pip install -r requirements.txt
-   ```
+3. **Aguarde a Configuração Automática** (Apenas na 1ª vez): Uma tela preta abrirá. O script irá automaticamente:
+   - Criar um ambiente isolado (para não bagunçar seu Windows).
+   - Baixar as ferramentas necessárias.
+   - Instalar o navegador Chromium.
+   - Isso pode levar de 1 a 2 minutos na primeira vez.
 
-   **requirements.txt:**
-   ```
-   streamlit
-   playwright
-   pandas
-   fake-useragent
-   beautifulsoup4
-   lxml
-   html5lib
-   ```
+4. **Use o App**: Assim que terminar, o seu navegador padrão abrirá com o aplicativo pronto para uso.
 
-3. Instale os binários do navegador:
-   ```bash
-   playwright install
-   ```
+## 🛠️ Como Usar a Ferramenta
 
-## ▶️ Como Utilizar
+1. **Cole a URL**: Na caixa de texto, cole o link do site que deseja raspar (ex: uma página de jogo da Bet365 ou lista de produtos).
 
-1. **Inicie o Aplicativo**: No terminal, dentro da pasta do projeto:
-   ```bash
-   streamlit run app.py
-   ```
+2. **Clique em "🚀 Extração Profunda"**: O robô vai navegar até o site invisivelmente.
 
-2. **Na Interface Web**:
-   - Uma aba do navegador abrirá automaticamente (geralmente em `http://localhost:8501`).
-   - Cole a URL (ou várias URLs, uma por linha) na caixa de texto.
-   - Clique em **🚀 Extração Profunda**.
+3. **Analise as Abas**:
+   - **🧩 Tabelas Dinâmicas (Divs)**: *(Mais Importante)* Verifique aqui se estiver buscando Odds de apostas ou produtos. O robô tenta montar tabelas baseadas no visual do site.
+   - **📋 Tabelas Clássicas**: Dados vindos de estruturas `<table>` tradicionais.
+   - **🔗 Links**: Lista de todos os links encontrados.
 
-3. **Analisando os Resultados**: O app divide os dados encontrados em 3 abas:
-   - **🧩 Tabelas Dinâmicas (Divs)**: AQUI ESTÁ A MÁGICA. Verifique esta aba para sites modernos (Apostas, Lojas). O app tenta reconstruir tabelas baseadas em repetições visuais.
-   - **📋 Tabelas Clássicas**: Exibe dados encontrados dentro de tags `<table>` (comum em Wikipedia).
-   - **🔗 Links**: Lista todos os links clicáveis encontrados na página.
+4. **Baixe**: Clique no botão "Baixar CSV" abaixo da tabela desejada.
 
-4. **Exportação**: Cada tabela encontrada possui um botão "Baixar CSV" logo abaixo dela.
+## 📂 Estrutura dos Arquivos
 
-## 🧠 Como Funciona (Arquitetura Técnica)
-
-O aplicativo segue um fluxo linear de dados:
-
-1. **Scheduler**: Recebe as URLs e cria uma fila de execução.
-
-2. **Downloader (Async Playwright)**:
-   - Abre uma instância "invisível" do Chromium.
-   - Aplica um User-Agent falso para parecer um usuário real.
-   - Carrega a página e espera o evento `networkidle` (rede calma) ou `domcontentloaded`.
-   - Executa um Scroll automático para forçar o carregamento de imagens e dados "Lazy Load".
-
-3. **Parser Universal (Heurístico)**:
-   - **HTML Tables**: Usa o `pandas.read_html` para varrer tags `<table>`.
-   - **Div Tables (Lógica Customizada)**: O algoritmo varre o HTML buscando elementos "Pai" que tenham muitos elementos "Filhos" diretos. Se os filhos tiverem estrutura de texto similar, eles são convertidos em linhas de um DataFrame.
-
-4. **Interface (Streamlit)**: Renderiza os DataFrames e gerencia o loop de eventos assíncronos (com correção `ProactorEventLoop` para Windows).
-
-## ⚠️ Resolução de Problemas Comuns
-
-### Erro: `NotImplementedError` ou falha no Loop de Eventos (Windows)
-
-**Causa**: O Windows usa um loop padrão que não suporta subprocessos assíncronos.
-
-**Solução**: O código já inclui a correção automática:
-```python
-if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+```
+universal-web-scraper-pro/
+├── app.py              # Código fonte principal (Lógica do Robô + Interface)
+├── iniciar.bat         # Script de automação para Windows
+├── requirements.txt    # Lista de bibliotecas necessárias
+└── venv/              # Pasta criada automaticamente (ambiente isolado)
 ```
 
-### Erro: Tabela vem "suja" ou com colunas estranhas
+- **`app.py`**: O código fonte principal (Lógica do Robô + Interface).
+- **`iniciar.bat`**: Script de automação para Windows. Ele garante que tudo rode sem erros.
+- **`requirements.txt`**: Lista de ingredientes (bibliotecas) que o `iniciar.bat` usa.
+- **`venv/`** *(Pasta criada automaticamente)*: Onde o programa guarda as ferramentas dele. Se deletar, ele cria de novo.
 
-**Causa**: A extração via "Divs" é heurística. Ela tenta separar colunas visualmente.
+## ❓ Solução de Problemas Comuns
 
-**Solução**: Baixe o CSV e faça a limpeza final no Excel. É melhor ter os dados sujos do que não ter dados.
+### 1. O arquivo `iniciar.bat` abre e fecha imediatamente
 
-## ⚖️ Aviso Legal e Ético
+**Causa**: Você provavelmente não tem o Python instalado ou não marcou a opção "Add to PATH" na instalação.
 
-- Este software foi criado para fins educacionais e de automação pessoal.
-- Verifique sempre o arquivo `robots.txt` do site alvo.
-- Não utilize para sobrecarregar servidores (ataques DoS).
-- Respeite a privacidade e os Termos de Uso dos sites que você acessar.
+**Solução**: Reinstale o Python baixando do [site oficial](https://python.org) e marque a opção de PATH.
+
+### 2. O App diz "Nenhuma tabela encontrada"
+
+**Causa**: O site pode usar uma estrutura muito complexa ou bloquear robôs agressivamente.
+
+**Solução**: Tente verificar a aba "Tabelas Dinâmicas". Se ainda assim falhar, o site pode exigir interação humana (login/captcha) que este robô automátizado evita por segurança.
+
+### 3. Tela preta travada em "Instalando..."
+
+Se for a primeira vez, pode demorar dependendo da sua internet (ele baixa cerca de 150MB do navegador). Tenha paciência.
+
+## ⚖️ Aviso Legal
+
+Esta ferramenta é destinada para **fins educacionais e automação de tarefas pessoais**. Respeite os Termos de Uso e o arquivo `robots.txt` dos sites que você acessar. O autor não se responsabiliza pelo uso indevido da ferramenta.
 
 ---
 
-Desenvolvido com Python 🐍 e Streamlit 🎈
+Desenvolvido com Python 🐍, Streamlit 🎈 e Playwright 🎭
