@@ -1,7 +1,8 @@
-   streamlit
-   playwright
-   pandas
-   fake-useragent
-   beautifulsoup4
-   lxml
-   html5lib
+streamlit
+playwright
+pandas
+fake-useragent
+beautifulsoup4
+lxml
+html5lib
+openpyxl
