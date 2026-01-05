@@ -20,6 +20,30 @@ Este extrator busca três níveis de dados:
 3. **Links e Textos:** Conteúdo geral.
 """)
 
+try:
+    # Tenta importar apenas para checar instalação
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    # Se der erro, avisa no Streamlit (se conseguir carregar) ou no console
+    print("ERRO CRÍTICO: Playwright não instalado corretamente.")
+
+def ensure_browsers_installed():
+    """Verifica se os binários do browser existem, senão instala."""
+    # Verificação simples: checa se a pasta de cache do playwright existe
+    # No Windows geralmente fica em %USERPROFILE%\AppData\Local\ms-playwright
+    # Mas a forma mais segura é tentar rodar o comando install do playwright de forma "preguiçosa"
+    if "PLAYWRIGHT_BROWSERS_PATH" not in os.environ:
+         # Só roda se não tivermos certeza. 
+         # O comando 'install chromium' é rápido se já estiver instalado.
+         try:
+             print("Verificando integridade do navegador...")
+             subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+         except Exception as e:
+             print(f"Aviso: Tentativa de auto-instalação falhou: {e}")
+
+# Chama a verificação antes de qualquer coisa
+ensure_browsers_installed()
+
 # --- 1. SCHEDULER ---
 def scheduler(url_input):
     if not url_input: return []
